@@ -13,13 +13,14 @@ client = openai.OpenAI(
     api_key=os.getenv("openai_key"),
 )
 
-def extractText(file):
+def extract_text(file):
     #print(pytesseract)
+    #img = cv2.imread("../walmart_receipt.png")
     file_bytes = file.read()
     nparr = np.frombuffer(file_bytes, np.uint8)
     img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
-    resize_img = cv2.resize(img, (1800, 1800), interpolation=cv2.INTER_AREA)
+    #resize_img = cv2.resize(img, (300, 300), interpolation=cv2.INTER_AREA)
     
     grayscale_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     contrasted_img = cv2.addWeighted(grayscale_img, 2, grayscale_img, -1, 0)
@@ -28,13 +29,13 @@ def extractText(file):
     ret, thresh_img = cv2.threshold(reduced_noise, 0, 255, cv2.THRESH_OTSU | cv2.THRESH_BINARY)
     # rect_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
     # dilation = cv2.dilate(thresh_img, rect_kernel, iterations = 1)
-    #cv2.imwrite("test_receipt2.jpg", dilation)
+    cv2.imwrite("test_receipt.jpg", thresh_img)
 
     text = pytesseract.image_to_string(thresh_img)
     print(text)
     return text
 
-def getFormattedJson(text):
+def get_formatted_json(text):
     prompt = """You are a receipt parser AI. I will give you raw text extracted from an image of a store receipt. I want you to return a JSON object of that text and
     include a field named expense_type where you infer what type of expense it is and categorize it based on the receipt. The JSON stucture should be: 
     {"total", "business", "items": [{"title", "quantity", "price"}], "timestamp", "expense_type}. The prices should be integers representing the number of pennies,
@@ -56,7 +57,7 @@ def getFormattedJson(text):
 
 
 if __name__ == "__main__":
-    path = input("Enter image path: ")
-    raw_text = extractText(path)
-    json_data = getFormattedJson(raw_text)
-    print(json_data)
+    #path = input("Enter image path: ")
+    raw_text = extract_text()
+    #json_data = get_formatted_json(raw_text)
+    #print(json_data)
