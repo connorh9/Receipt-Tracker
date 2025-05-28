@@ -14,23 +14,36 @@ client = openai.OpenAI(
 )
 
 def extract_text(file):
+    """
+    Extracts the image from the input and transforms it and
+    produces a string representation of the image.
+    Returns: string: the receipt's text in string format
+    """
     #print(pytesseract)
     #img = cv2.imread("../walmart_receipt.png")
+    
+    #Here we decode the image we received as a file buffer
     file_bytes = file.read()
     nparr = np.frombuffer(file_bytes, np.uint8)
     img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
     #resize_img = cv2.resize(img, (300, 300), interpolation=cv2.INTER_AREA)
     
+    # grayscale to make text stand out
     grayscale_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    #created more contrast in image
     contrasted_img = cv2.addWeighted(grayscale_img, 2, grayscale_img, -1, 0)
+    # remove any noise that may affect the text reading
     reduced_noise = cv2.fastNlMeansDenoising(contrasted_img,None,30,7,21)
-    
+    #apply otsu's threshold to make everything either black or white
     ret, thresh_img = cv2.threshold(reduced_noise, 0, 255, cv2.THRESH_OTSU | cv2.THRESH_BINARY)
     # rect_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
     # dilation = cv2.dilate(thresh_img, rect_kernel, iterations = 1)
+
+    #writing the image for testing
     cv2.imwrite("test_receipt.jpg", thresh_img)
 
+    #use tesseract for text extraction
     text = pytesseract.image_to_string(thresh_img)
     print(text)
     return text
