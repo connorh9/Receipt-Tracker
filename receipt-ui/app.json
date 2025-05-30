@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "receipt-tracker-ui",
-    "slug": "receipt-tracker-ui",
+    "name": "receipt-ui",
+    "slug": "receipt-ui",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "receipttrackerui",
+    "scheme": "receiptui",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
