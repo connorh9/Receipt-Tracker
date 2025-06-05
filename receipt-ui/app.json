@@ -33,7 +33,12 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
-      ]
+      ],
+      "expo-image-picker",
+      {
+        "photosPermission": "Allow receipt tracker to access your photos",
+        "cameraPermission": "Aloow receipt tracker to use your camera"
+      }
     ],
     "experiments": {
       "typedRoutes": true
