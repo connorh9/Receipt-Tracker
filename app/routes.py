@@ -18,6 +18,9 @@ def addReceipt():
     if 'image' not in request.files:
         return jsonify({'message': 'No image sent in request'}), 400
     
+    if 'user_id' not in request.form:
+        return jsonify({'message': 'Please make sure you are logged in'}), 400
+    
     file = request.files['image']
     user_id = request.form.get('user_id')
 
@@ -89,3 +92,20 @@ def fetchReceipts():
     return jsonify(receipts_list), 200
 
 
+@bp.route('/register', methods=['POST'])
+def registerUser():
+    if 'username' not in request.form:
+        return jsonify({'message': 'Username missing'}), 400
+    if 'password' not in request.form:
+        return jsonify({'message': 'Password missing'}), 400
+    
+    username = request.form.get('username')
+    password = request.form.get('password')
+
+    if len(password) < 8:
+        return jsonify({'message': 'Password requires 8 characters'}), 400
+    if not any(char.isdigit() for char in password):
+        return jsonify({'message': 'Password requires a number'}), 400
+
+
+    db = get_db()
