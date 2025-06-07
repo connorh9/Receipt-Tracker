@@ -3,6 +3,7 @@ import app.backend as backend
 from .db import get_db
 import json
 import numpy as np
+from werkzeug.security import generate_password_hash, check_password_hash
 
 bp = Blueprint('bp', __name__)
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
@@ -102,10 +103,26 @@ def registerUser():
     username = request.form.get('username')
     password = request.form.get('password')
 
+    if len(username) < 6:
+        return jsonify({'message': 'Username requires 6 characters'}), 400
     if len(password) < 8:
         return jsonify({'message': 'Password requires 8 characters'}), 400
     if not any(char.isdigit() for char in password):
         return jsonify({'message': 'Password requires a number'}), 400
 
+    password_hash = generate_password_hash(password)
 
     db = get_db()
+
+    cursor = db.execute(
+        'SELECT * FROM users WHERE username = ?',
+        (username,)
+    )
+
+    results = cursor.fetchone()
+    if results:
+        return jsonify({'message': 'Username already exists'}), 400
+    
+    cursor = db.execute(
+        'INSERT INTO users (username, email, password)'
+    )
