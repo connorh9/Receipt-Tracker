@@ -4,14 +4,36 @@ from .db import get_db
 import json
 import numpy as np
 from werkzeug.security import generate_password_hash, check_password_hash
+from functools import wraps
+from jwt import ExpiredSignatureError, decode, jwt
+
 
 bp = Blueprint('bp', __name__)
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
-
+SECRET_KEY = ''
 def allowed_file(filename):
     #make sure it is of acceptable file type
     return '.' in filename and filename.rsplit('.',1)[1].lower() in ALLOWED_EXTENSIONS
 
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if 'Authorization' in request.headers:
+            token = request.headers['Authorization'].split(" ")[1]
+
+        if not token:
+            return jsonify({'message': 'Token missing'}), 401
+
+        try:
+            data = decode(token, SECRET_KEY, algorithms=["HS256"])
+            request.user_id = data['user_id']
+        except ExpiredSignatureError:
+            return jsonify({'message': 'Token expired'}), 401
+        except Exception as e:
+            return jsonify({'message': 'Token invalid'}), 401
+
+        return f(*args, **kwargs)
+    return decorated
 
 @bp.route('/upload', methods=['POST'])
 def addReceipt():
@@ -102,6 +124,7 @@ def registerUser():
     
     username = request.form.get('username')
     password = request.form.get('password')
+    email = request.form.get('email')
 
     if len(username) < 6:
         return jsonify({'message': 'Username requires 6 characters'}), 400
@@ -124,5 +147,8 @@ def registerUser():
         return jsonify({'message': 'Username already exists'}), 400
     
     cursor = db.execute(
-        'INSERT INTO users (username, email, password)'
+        'INSERT INTO users (username, email, password)',
+        (username, email, password)
     )
+
+    return jsonify({'token': })
