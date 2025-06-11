@@ -4,7 +4,9 @@ import { Button, Image, View, StyleSheet } from 'react-native'
 
 export default function UploadImage() {
     const [image, setImage] = useState(null)
-    const pickImage = async () => {
+    const [isUploading, setIsUploading] = useState(false)
+    
+    const PickImage = async () => {
         const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (!permissionResult.granted) {
             alert('Permission to access gallery is required!');
@@ -16,9 +18,9 @@ export default function UploadImage() {
             quality: 0.7
         })
         
-        if(!result.cancelled){
+        if(!result.canceled){
             setImage(result.assets[0].uri)
-            uploadImage()
+            uploadImageToAPI()
         }
     }
 
@@ -34,7 +36,23 @@ export default function UploadImage() {
         })
     }
 
-    const uploadImage = async () => {
+    const uploadImageToAPI = async () => {
+        userId = '1234'
+        const formData = new FormData()
+        formData.append("image", image)
+        formData.append("user_id", userId)
+        setIsUploading(true)
 
+        const result = await fetch('http://localhost:5000/upload', {
+            method:'POST',
+            body: formData
+        })
+        setIsUploading(false)
+
+        if(!result.ok){
+            throw new Error(result.status)
+        }
+        const json = await result.json()
+        console.log(json)
     }
 }
