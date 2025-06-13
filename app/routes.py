@@ -6,14 +6,28 @@ import numpy as np
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 from jwt import ExpiredSignatureError, decode, jwt
+from dotenv import load_dotenv
+from datetime import datetime, timedelta
+import os
+
+load_dotenv()
 
 
 bp = Blueprint('bp', __name__)
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
-SECRET_KEY = ''
+SECRET_KEY = os.getenv('SECRET_KEY', "")
+
 def allowed_file(filename):
     #make sure it is of acceptable file type
     return '.' in filename and filename.rsplit('.',1)[1].lower() in ALLOWED_EXTENSIONS
+
+def generate_jwt(user_id):
+    payload = {
+        'user_id': user_id,
+        'exp': datetime.timezone.utc + timedelta(days=30)
+    }
+    token = jwt.encode(payload, SECRET_KEY, algorithm='HS256')
+    return token
 
 def token_required(f):
     @wraps(f)
@@ -114,7 +128,6 @@ def fetchReceipts():
 
     return jsonify(receipts_list), 200
 
-
 @bp.route('/register', methods=['POST'])
 def registerUser():
     if 'username' not in request.form:
@@ -150,5 +163,28 @@ def registerUser():
         'INSERT INTO users (username, email, password)',
         (username, email, password)
     )
+    user_id = cursor.lastrowid
+    if user_id is None:
+        return jsonify({'message': "Unable to register user at this time"}), 400
 
-    return jsonify({'token': })
+    jwt_token = generate_jwt(user_id)
+    return jsonify({'token': jwt_token, 'user_id': user_id}), 200
+
+@bp.route('/login', methods=['POST'])
+def login():
+    if 'username' not in request.form:
+        return jsonify({'message': 'Username missing'}), 400
+    if 'password' not in request.form:
+        return jsonify({'message': 'Password missing'}), 400
+    
+    username = request.form.get('username')
+    password = request.form.get('password')
+
+    db = get_db()
+
+    cursor = db.execute(
+        'SELECT * WHERE username = ? ', (username,) 
+    )
+
+    if not cursor.fetchone():
+        return jsonify({'message': 'Username does not exist'})
