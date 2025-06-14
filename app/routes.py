@@ -7,7 +7,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 from jwt import ExpiredSignatureError, decode, jwt
 from dotenv import load_dotenv
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import os
 
 load_dotenv()
@@ -24,7 +24,15 @@ def allowed_file(filename):
 def generate_jwt(user_id):
     payload = {
         'user_id': user_id,
-        'exp': datetime.timezone.utc + timedelta(days=30)
+        'exp': datetime.now(timezone.utc) + timedelta(days=30)
+    }
+    token = jwt.encode(payload, SECRET_KEY, algorithm='HS256')
+    return token
+
+def generate_reset_token(user_id):
+    payload = {
+        'user_id': user_id,
+        'exp': datetime.now(timezone.utc) + timedelta(hours=1)
     }
     token = jwt.encode(payload, SECRET_KEY, algorithm='HS256')
     return token
@@ -134,6 +142,8 @@ def registerUser():
         return jsonify({'message': 'Username missing'}), 400
     if 'password' not in request.form:
         return jsonify({'message': 'Password missing'}), 400
+    if 'email' not in request.form:
+        return jsonify({'message': 'Email missing'}), 400
     
     username = request.form.get('username')
     password = request.form.get('password')
@@ -154,10 +164,17 @@ def registerUser():
         'SELECT * FROM users WHERE username = ?',
         (username,)
     )
-
     results = cursor.fetchone()
     if results:
         return jsonify({'message': 'Username already exists'}), 400
+    
+    cursor = db.execute(
+        'SELECT * FROM users WHERE email = ?',
+        (email,)
+    )
+    results = cursor.fetchone()
+    if results:
+        return jsonify({'message': 'Email already exists'}), 400
     
     cursor = db.execute(
         'INSERT INTO users (username, email, password)',
@@ -183,8 +200,44 @@ def login():
     db = get_db()
 
     cursor = db.execute(
-        'SELECT * WHERE username = ? ', (username,) 
+        'SELECT * FROM users WHERE username = ? ', (username,) 
     )
 
     if not cursor.fetchone():
         return jsonify({'message': 'Username does not exist'})
+
+    rows = cursor.fetchall()
+
+    for row in rows:
+        hashed_pw = row[3]
+        if(check_password_hash(hashed_pw, password)):
+            token = generate_jwt(row[0])
+            return jsonify({'message':'Successfully logged in', 'token': token}), 200
+    
+    return jsonify({'message':'Password is incorrect'}), 400
+
+
+@bp.route('/reset', methods=['POST'])
+def get_reset_token():
+    if 'email' not in request.form:
+        return jsonify({'message': 'Email not provided'}), 400
+    
+    email = request.form.get('email')
+    db = get_db()
+
+    cursor = db.execute(
+        'SELECT * FROM users WHERE email = ? ', (email,)
+    )
+    row = cursor.fetchone()
+    if row is None:
+        return jsonify({'message':'Email not in system'}), 400
+    
+    user_id = row['id']
+    
+    token = generate_reset_token(user_id)
+
+    #Will integrate sending email with links later
+    return jsonify({"token": token}), 200
+
+
+
