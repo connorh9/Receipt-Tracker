@@ -9,6 +9,7 @@ from jwt import ExpiredSignatureError, decode, jwt
 from dotenv import load_dotenv
 from datetime import datetime, timedelta, timezone
 import os
+from flask_mailman import Mail, EmailMessage
 
 load_dotenv()
 
@@ -233,11 +234,18 @@ def get_reset_token():
         return jsonify({'message':'Email not in system'}), 400
     
     user_id = row['id']
-    
     token = generate_reset_token(user_id)
 
+    link = f"receipttracker://reset-password-link/${token}"
+    msg = EmailMessage(
+        'Subject',
+        'Body',
+        to=[email],
+        reply_to=['noreply@receiptreader.com']
+    )
     #Will integrate sending email with links later
     return jsonify({"token": token}), 200
+
 
 
 
