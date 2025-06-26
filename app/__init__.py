@@ -18,7 +18,7 @@ def create_app():
         "MAIL_SERVER": "smtp.gmail.com",
         "MAIL_PORT": 587,
         "MAIL_USE_TLS": True,
-        "MAIL_USERNAME": os.getenv('EMAIL-USERNAME'),
+        "MAIL_USERNAME": os.getenv('EMAIL_USERNAME'),
         "MAIL_PASSWORD": os.getenv('EMAIL_PW'),  
         "MAIL_DEFAULT_SENDER": os.getenv('EMAIL')
     })
