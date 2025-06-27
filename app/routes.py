@@ -59,16 +59,13 @@ def token_required(f):
     return decorated
 
 @bp.route('/upload', methods=['POST'])
-def addReceipt():
+@token_required
+def addReceipt(user_id):
     #check if an image was uploaded and retrieve image
     if 'image' not in request.files:
         return jsonify({'message': 'No image sent in request'}), 400
     
-    if 'user_id' not in request.form:
-        return jsonify({'message': 'Please make sure you are logged in'}), 400
-    
     file = request.files['image']
-    user_id = request.form.get('user_id')
 
     if file.filename == '':
         return jsonify({'message':'No image selected for uploading'}), 400
@@ -126,11 +123,13 @@ def addReceipt():
     return jsonify({"message":"Receipt added successfully!"}), 201
     
 @bp.route('/receipts', methods=['GET'])
-def fetchReceipts():
+@token_required
+def fetchReceipts(user_id):
     #gets all receipts from most to least recent
     db = get_db()
     cursor = db.execute(
-        'SELECT * FROM receipts ORDER BY timestamp DESC'    
+        'SELECT * FROM receipts WHERE user_id = ? ORDER BY timestamp DESC' ,
+        (user_id)   
     )
     receipts = cursor.fetchall()
     receipts_list = [dict(receipt) for receipt in receipts]
@@ -238,13 +237,16 @@ def get_reset_token():
 
     link = f"receipttracker://reset-password-link/${token}"
     msg = EmailMessage(
-        'Subject',
-        'Body',
+        'Reset Password Link',
+        f"""
+        Here is your password reset link for receipt tracker 
+        {link}
+        """,
         to=[email],
         reply_to=['noreply@receiptreader.com']
     )
     #Will integrate sending email with links later
-    return jsonify({"token": token}), 200
+    return jsonify({"message": "Reset link sent"}), 200
 
 
 
