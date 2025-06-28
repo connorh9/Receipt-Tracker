@@ -2,3 +2,6 @@ openai
 opencv-python
 pytesseract
 dotenv
+flask_mailman
+werkzeug
+jwt
