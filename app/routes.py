@@ -5,10 +5,11 @@ import json
 import numpy as np
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
-from jwt import ExpiredSignatureError, decode, jwt
+from jwt import ExpiredSignatureError, decode, jwt, InvalidTokenError
 from dotenv import load_dotenv
 from datetime import datetime, timedelta, timezone
 import os
+import sqlite3
 from flask_mailman import Mail, EmailMessage
 
 load_dotenv()
@@ -41,6 +42,7 @@ def generate_reset_token(user_id):
 def token_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
+        token = None
         if 'Authorization' in request.headers:
             token = request.headers['Authorization'].split(" ")[1]
 
@@ -49,13 +51,13 @@ def token_required(f):
 
         try:
             data = decode(token, SECRET_KEY, algorithms=["HS256"])
-            request.user_id = data['user_id']
+            user_id = data['user_id']
         except ExpiredSignatureError:
             return jsonify({'message': 'Token expired'}), 401
-        except Exception as e:
+        except InvalidTokenError:
             return jsonify({'message': 'Token invalid'}), 401
 
-        return f(*args, **kwargs)
+        return f(user_id, *args, **kwargs)
     return decorated
 
 @bp.route('/upload', methods=['POST'])
@@ -129,7 +131,7 @@ def fetchReceipts(user_id):
     db = get_db()
     cursor = db.execute(
         'SELECT * FROM receipts WHERE user_id = ? ORDER BY timestamp DESC' ,
-        (user_id)   
+        (user_id,)   
     )
     receipts = cursor.fetchall()
     receipts_list = [dict(receipt) for receipt in receipts]
@@ -248,6 +250,61 @@ def get_reset_token():
     #Will integrate sending email with links later
     return jsonify({"message": "Reset link sent"}), 200
 
+@bp.route('/reset_password', methods=['POST'])
+def reset_password():
+    data = None
+    data = request.get_json()
 
+    if data is None:
+        return jsonify({'message':'No json data found'}), 400
+    
+    if 'token' not in data:
+        return jsonify({'message':'Token not found in json'}), 400
 
+    if 'new_password' not in data:
+        return jsonify({'message':'Password not found in json'}), 400
+    
+    token = data.get('token')
+    new_password = data.get('new_password')
+
+    try:
+        data = decode(token, SECRET_KEY, algorithms=["HS256"])
+        user_id = data['user_id']
+    except ExpiredSignatureError:
+        return jsonify({'message': 'Token expired'}), 401
+    except InvalidTokenError:
+        return jsonify({'message': 'Token invalid'}), 401
+    
+    db = get_db()
+    result = db.execute(
+        """
+        SELECT password_hash FROM users WHERE id = ?
+        """, (user_id,)
+    )
+    row = result.fetchone()
+    if not check_password_hash(row['password_hash'], new_password):
+        return jsonify({
+            'message':'Cannot reuse a password'
+        }), 400
+
+    if len(new_password) < 8:
+        return jsonify({'message':'New password does not meet length requirement'}), 400
+    
+    encrypted_pw = generate_password_hash(new_password)
+    try:
+        result = db.execute(
+            """
+            UPDATE users SET password_hash = ? WHERE id = ?
+            """, (encrypted_pw, user_id)
+        )
+
+        if result.rowcount == 0:
+            return jsonify({'message':'User not found in database'}), 400
+        db.commit()
+
+    except sqlite3.Error as e:
+        db.rollback()
+        return jsonify({'message':'Database error'}), 500
+
+    return jsonify({'message':'Password updated properly'}), 200
 
