@@ -36,8 +36,8 @@
       ],
       "expo-image-picker",
       {
-        "photosPermission": "Allow receipt tracker to access your photos",
-        "cameraPermission": "Aloow receipt tracker to use your camera"
+        "photosPermission": "This app requires access to your photos to allow you to upload pictures of receipts",
+        "cameraPermission": "This app requires access to your photos to allow you to take new pictures of receipts"
       }
     ],
     "experiments": {

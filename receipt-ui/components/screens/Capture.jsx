@@ -32,6 +32,7 @@ export default function UploadImage() {
         }
 
         const result = await ImagePicker.launchCameraAsync({
+            allowsEditing: true,
             
         })
     }
