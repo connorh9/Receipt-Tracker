@@ -42,7 +42,7 @@ export default function Capture() {
         }
         setImage(null)
     }
-
+//will need to add sending auth token
     const uploadImageToAPI = async () => {
         userId = '1234'
         const formData = new FormData()
