@@ -1,12 +1,12 @@
 import * as ImagePicker from 'expo-image-picker'
 import { useState } from 'react'
-import { Button, Image, View, StyleSheet } from 'react-native'
+import { Button, Image, View, StyleSheet, TouchableOpacity, ImageBackground, ActivityIndicator } from 'react-native'
 
-export default function UploadImage() {
+export default function Capture() {
     const [image, setImage] = useState(null)
     const [isUploading, setIsUploading] = useState(false)
     
-    const PickImage = async () => {
+    const pickImage = async () => {
         const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (!permissionResult.granted) {
             alert('Permission to access gallery is required!');
@@ -22,6 +22,7 @@ export default function UploadImage() {
             setImage(result.assets[0].uri)
             uploadImageToAPI()
         }
+        setImage(null)
     }
 
     const takeImage = async () => {
@@ -35,6 +36,11 @@ export default function UploadImage() {
             allowsEditing: true,
             
         })
+        if(!result.canceled){
+            setImage(result.assets[0].uri)
+            uploadImageToAPI()
+        }
+        setImage(null)
     }
 
     const uploadImageToAPI = async () => {
@@ -56,4 +62,70 @@ export default function UploadImage() {
         const json = await result.json()
         console.log(json)
     }
+
+    return (
+        <View style={styles.container}>
+            {isUploading ? 
+            <>
+                <Text style={{fontSize:20, textAlign:'center'}}>Uploading</Text>
+                <ActivityIndicator size='large'/>
+            </> 
+            :
+            <>
+                <TouchableOpacity 
+                    style={styles.button}
+                    onPress={pickImage}
+                    disabled={isUploading}
+                >
+                    <ImageBackground 
+                        style={styles.background}
+                        source={"photoAlbumpic"}
+                        imageStyle={styles.imageStyle}>
+                        <Text style={styles.buttonText}>Select image from photos</Text>
+                    </ImageBackground>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                    style={styles.button}
+                    onPress={takeImage}
+                    disabled={isUploading}
+                >
+                    <ImageBackground style={styles.background}>
+                        <Text style={styles.buttonText}>Take image with camera</Text>
+                    </ImageBackground>
+                </TouchableOpacity>
+            </>
+            }
+        </View>
+    )
+
 }
+
+const styles = StyleSheet.create({
+    container: {
+        display: flex,
+        flexDirection:'column',
+        justifyContent:'space-between',
+        alignItems:'center',
+        padding: '20px',
+        height:'50px',
+    },
+    button: {
+        height:200,
+        width:200,
+        overflow:'hidden',
+        borderRadius: 10
+    },
+    background: {
+        flex: 1,
+        justifyContent:'flex-end',
+        paddingBottom:10,
+        opacity:.75,
+    },
+    buttonText: {
+        fontSize:14,
+        textAlign:'center',
+    },
+    imageStyle: {
+        resizeMode:'cover'
+    }
+});
