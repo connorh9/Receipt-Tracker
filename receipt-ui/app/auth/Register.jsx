@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Alert } from 'react-native';
+import { useRouter } from 'expo-router';
 
 export default function Register(){
+    const router = useRouter()
+
     const [username, setUsername] = useState('')
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
@@ -39,6 +42,19 @@ export default function Register(){
                 password: password
             })
         })
+
+        const data = await result.json()
+        if(!result.ok){
+            Alert.alert(data.message)
+            return;
+        }
+
+        jwtToken = data.token
+        userId = data.user_id
+        await AsyncStorage.setItem('token', data.token);
+        await AsyncStorage.setItem('user_id', data.user_id.toString());
+
+        router.replace('/screens/Summary')
 
     }
     return (
