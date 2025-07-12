@@ -102,7 +102,7 @@ export default function Capture() {
 
 const styles = StyleSheet.create({
     container: {
-        display: flex,
+        display: 'flex',
         flexDirection:'column',
         justifyContent:'space-between',
         alignItems:'center',

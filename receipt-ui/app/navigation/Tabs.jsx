@@ -5,7 +5,7 @@ import Capture from "../screens/Capture"
 
 const Tab = createBottomTabNavigator();
 
-function Tabs() {
+export default function Tabs() {
     return (
         <Tab.Navigator>
             <Tab.Screen name="Summary" component={Summary} />

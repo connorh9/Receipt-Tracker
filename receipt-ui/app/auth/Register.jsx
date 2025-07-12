@@ -1,6 +1,8 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Alert } from 'react-native';
+import { Dimensions, Button, View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
+
+const screenHeight = Dimensions.get('window').height;
 
 export default function Register(){
     const router = useRouter()
@@ -9,6 +11,7 @@ export default function Register(){
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [passwordConfirm, setPasswordConfirm] = useState('')
+    const [showPassword, setShowPassword] = useState(false)
 
     const submit = async () => {
         if(email.length() < 1){
@@ -59,44 +62,133 @@ export default function Register(){
     }
     return (
         <View style={styles.container}>
-            <TextInput 
-                placeholder='Email'
-                onChangeText={input => setEmail(input)}
-            />
-            <TextInput 
-                placeholder='Username'
-                onChangeText={input => setUsername(input)}
-            />
-            <TextInput 
-                placeholder='Password'
-                onChangeText={input => setPassword(input)}
-                secureTextEntry={True}
-            />
-            <TextInput 
-                placeholder='Confirm Password'
-                onChangeText={input => setPasswordConfirm(input)}
-                secureTextEntry={True}
-            />
+            <View style={styles.formSection}>
+                <TextInput 
+                    placeholder='Email'
+                    onChangeText={input => setEmail(input)}
+                    style={styles.textBoxes}
+                    placeholderTextColor={'#808080'}
+                />
+                <TextInput 
+                    placeholder='Username'
+                    onChangeText={input => setUsername(input)}
+                    style={styles.textBoxes}
+                    placeholderTextColor={'#808080'}
+                />
+                <View style={styles.passwordContainer}>
+                    <TextInput 
+                        placeholder='Password'
+                        onChangeText={input => setPassword(input)}
+                        secureTextEntry={!showPassword}
+                        style={styles.passwordInput}
+                        placeholderTextColor={'#808080'}
+                    />
+                    <TouchableOpacity
+                        onPress={() => setShowPassword(!showPassword)}
+                    >
+                        <Text style={styles.eyeText}>{showPassword ? 'Hide' : 'Show'}</Text>
+                    </TouchableOpacity>
+                </View>
+                <View style={styles.passwordContainer}>
+                    <TextInput 
+                        placeholder='Confirm Password'
+                        onChangeText={input => setConfirmPassword(input)}
+                        secureTextEntry={!showPassword}
+                        style={styles.passwordInput}
+                        placeholderTextColor={'#808080'}
+                    />
+                    <TouchableOpacity
+                        onPress={() => setShowPassword(!showPassword)}
+                    >
+                        <Text style={styles.eyeText}>{showPassword ? 'Hide' : 'Show'}</Text>
+                    </TouchableOpacity>
+                </View>
+            </View>
 
-            <View style={styles.loginText}>
+            <TouchableOpacity style={styles.registerButton}>
+                <Text style={{color:'red', textAlign:'center'}}>Create Account</Text>
+            </TouchableOpacity>
+
+            <View style={styles.bottomSection}>
                 <Text>Already have an account?</Text>
                 <TouchableOpacity>
                     <Text style={styles.hyperlink}>Log In</Text>
                 </TouchableOpacity>
             </View>
-            <Button>Register</Button>
         </View>
     )
 }
 
 const styles = StyleSheet.create({
-    container: {
+    container:{
+        flex: 1,
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: 20,
+        backgroundColor: 'white'
+    },
+    passwordContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#f2f2f2',
+        borderRadius: 10,
+        width: 325,
+        height: 50,
+        margin: 10,
+        paddingHorizontal: 10,
+        justifyContent: 'space-between',
+        backgroundColor: '#f2f2f2'
+    },
+    formSection: {
+        width:'100%',
+        alignItems: 'center',
+        paddingTop: screenHeight * .2,
 
     },
     loginText: {
-
+        
     },
     hyperlink: {
 
+    },
+    textBoxes: {
+        height:50,
+        width:325,
+        borderWidth:1,
+        margin:10,
+        borderRadius: 10,
+        borderColor:'#f2f2f2',
+        padding: 10,
+        backgroundColor: '#f2f2f2',
+    },
+    registerButton: {
+        paddingTop:'15',
+        borderWidth: 1,
+        borderRadius:50,
+        width:325,
+        height:50,
+        textAlign: 'center'
+    },
+    bottomSection: {
+        alignItems: 'center',
+        marginBottom: 30,
+    },
+    hyperlink: {
+        color: 'blue',
+        marginTop: 4
+    },
+    showButton: {
+        padding:5
+    },
+    eyeText:{
+        color:'#808080',
+        padding: 5
+    },
+    passwordInput: {
+        flex: 1,
+        height: '100%',
+        paddingRight: 30,
+        
     }
 })
