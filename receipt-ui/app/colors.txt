@@ -1,0 +1,4 @@
+potential text box: #FFF1E6, faf7f5, #faf0e6
+placeholder text: #5D5A55
+button color: f5d4ba
+border color: FDBE85
