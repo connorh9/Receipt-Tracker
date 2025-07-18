@@ -125,32 +125,33 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         paddingVertical: 20,
-        backgroundColor: 'white'
+        backgroundColor: '#fdf6f0'
     },
     passwordContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: '#f2f2f2',
+        borderColor: '#e8e7e6',
         borderRadius: 10,
         width: 325,
         height: 50,
         margin: 10,
         paddingHorizontal: 10,
         justifyContent: 'space-between',
-        backgroundColor: '#f2f2f2'
+        backgroundColor: '#faf9f6'
     },
     formSection: {
         width:'100%',
         alignItems: 'center',
-        paddingTop: screenHeight * .2,
 
     },
     loginText: {
         
     },
     hyperlink: {
-
+        color: '#542a18',
+        marginTop: 4,
+        textDecorationLine:'underline'
     },
     textBoxes: {
         height:50,
@@ -158,9 +159,9 @@ const styles = StyleSheet.create({
         borderWidth:1,
         margin:10,
         borderRadius: 10,
-        borderColor:'#f2f2f2',
+        borderColor:'#e8e7e6',
         padding: 10,
-        backgroundColor: '#f2f2f2',
+        backgroundColor: '#faf9f6',
     },
     registerButton: {
         paddingTop:'15',
@@ -168,7 +169,10 @@ const styles = StyleSheet.create({
         borderRadius:50,
         width:325,
         height:50,
-        textAlign: 'center'
+        textAlign: 'center',
+        marginTop:40,
+        backgroundColor:'#f5d4ba',
+        borderColor:'#FDBE85'
     },
     bottomSection: {
         alignItems: 'center',
@@ -190,5 +194,29 @@ const styles = StyleSheet.create({
         height: '100%',
         paddingRight: 30,
         
+    },
+    registerText: {
+        textAlign:'center', 
+        color:'#592f0c', 
+        fontSize:16,
+        fontWeight:'bold',
+        letterSpacing:1.5
+    },
+    headerSection: {
+        alignItems: 'center',
+        marginTop: 10,
+    },  
+    logo: {
+        width: 150,
+        height: 150,
+    },
+    headerText: {
+        fontSize: 21,
+        fontWeight: 'bold',
+        color: '#182828',
+        letterSpacing: 1,
+    },
+    loginText: {
+        color:'#182828'
     }
 })
