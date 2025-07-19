@@ -1,14 +1,30 @@
-import { Tabs } from 'expo-router'
+import React from 'react';
+import { Tabs, Stack, Redirect } from 'expo-router';
+import { useEffect, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export default function TabLayout() {
-  return (
-    <Tabs>
-      <Tabs.Screen name="summary" options={{ title: 'Summary' }} />
-      <Tabs.Screen name="capture" options={{ title: 'Capture' }} />
-      <Tabs.Screen name="analysis" options={{ title: 'Analysis' }} />
-      <Tabs.Screen name="login" options={{ title: 'Login' }}/>
-      <Tabs.Screen name="Register" options={{ title: 'Register' }}/>
+export default function RootLayout() {
+  const [isLoading, setIsLoading] = useState(true)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
 
-    </Tabs>
-  )
+  useEffect(()=> {
+    const checkAuth = async () => {
+      try {
+        const token = await AsyncStorage.getItem('token');
+        console.log('token:', token);
+        setIsLoggedIn(!!token);
+      } catch (e) {
+        console.error('Failed to read token:', e);
+    }
+    
+    }
+    checkAuth()
+  }, [])
+
+  if(isLoading) return <Text>Is Loading </Text>
+
+  if(!isLoggedIn){
+    return <Redirect href='/auth/Login'/>;
+  }
+  return <Tabs />;
 }

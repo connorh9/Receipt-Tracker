@@ -1,6 +1,8 @@
 import { useState } from 'react';
-import { Dimensions, Button, View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Alert } from 'react-native';
+import { AsyncStorage, Dimensions, Button, View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
+
+
 
 const screenHeight = Dimensions.get('window').height;
 
@@ -51,7 +53,7 @@ export default function Login(){
         await AsyncStorage.setItem('token', data.token);
         await AsyncStorage.setItem('user_id', data.user_id.toString());
 
-        router.replace('/screens/Summary')
+        router.replace('/')
 
     }
     return (
@@ -75,6 +77,7 @@ export default function Login(){
                     placeholderTextColor={'#5D5A55'}
                     onChangeText={input => setUsername(input)}
                     style={styles.textBoxes}
+                    accessibilityLabel='Username box'
                 />
                 <View style={styles.passwordContainer}>
                     <TextInput 
@@ -83,19 +86,26 @@ export default function Login(){
                         secureTextEntry={true}
                         style={styles.passwordInput}
                         placeholderTextColor={'#5D5A55'}
+                        accessibilityLabel='Password box'
                     />
                     <TouchableOpacity
                         onPress={() => setShowPassword(!showPassword)}
+                        accessibilityLabel={showPassword ? 'Hide Password': 'Show Passowrd'}
                     >
                         <Text style={styles.eyeText}>{showPassword ? 'Hide' : 'Show'}</Text>
                     </TouchableOpacity>
                 </View>
-                <TouchableOpacity style={styles.loginButton} onPress={submit}>
+                <TouchableOpacity 
+                    style={styles.loginButton} 
+                    onPress={submit}
+                    accessibilityLabel='Sign In Button'
+                >
                     <Text style={styles.signInText}>Sign In</Text>
                 </TouchableOpacity>
                 
                 <TouchableOpacity
                     style={styles.forgotPw}
+                    accessibilityLabel='Forgot Password Button'
                 >
                     <Text style={styles.forgotPwText}>Forgot Password?</Text>
                 </TouchableOpacity>
@@ -106,7 +116,7 @@ export default function Login(){
 
             <View style={styles.bottomSection}>
                 <Text style={styles.registerText}>Need to create an account?</Text>
-                <TouchableOpacity>
+                <TouchableOpacity accessibilityLabel='Register Button'>
                     <Text style={styles.hyperlink}>Sign Up</Text>
                 </TouchableOpacity>
             </View>

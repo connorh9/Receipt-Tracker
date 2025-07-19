@@ -57,23 +57,34 @@ export default function Register(){
         await AsyncStorage.setItem('token', data.token);
         await AsyncStorage.setItem('user_id', data.user_id.toString());
 
-        router.replace('/screens/Summary')
+        router.replace('/')
 
     }
     return (
         <View style={styles.container}>
+            <View style={styles.headerSection}>
+                <Image
+                    source={require('../assets/logo.png')}
+                    style={styles.logo}
+                    resizeMode="contain"
+                />
+                <Text style={styles.headerText}>Welcome to the trap house</Text>
+                <Text style={{marginTop:5, color:'#592f0c'}}>Register to start tracking!</Text>
+            </View>
             <View style={styles.formSection}>
                 <TextInput 
                     placeholder='Email'
                     onChangeText={input => setEmail(input)}
                     style={styles.textBoxes}
                     placeholderTextColor={'#808080'}
+                    accessibilityLabel='Email Box'
                 />
                 <TextInput 
                     placeholder='Username'
                     onChangeText={input => setUsername(input)}
                     style={styles.textBoxes}
                     placeholderTextColor={'#808080'}
+                    accessibilityLabel='Username Box'
                 />
                 <View style={styles.passwordContainer}>
                     <TextInput 
@@ -82,9 +93,11 @@ export default function Register(){
                         secureTextEntry={!showPassword}
                         style={styles.passwordInput}
                         placeholderTextColor={'#808080'}
+                        accessibilityLabel='Password Box'
                     />
                     <TouchableOpacity
                         onPress={() => setShowPassword(!showPassword)}
+                        accessibilityLabel={showPassword ? 'Hide Password': 'Show Passowrd'}
                     >
                         <Text style={styles.eyeText}>{showPassword ? 'Hide' : 'Show'}</Text>
                     </TouchableOpacity>
@@ -96,22 +109,24 @@ export default function Register(){
                         secureTextEntry={!showPassword}
                         style={styles.passwordInput}
                         placeholderTextColor={'#808080'}
+                        accessibilityLabel='Confirm Password Box'
                     />
                     <TouchableOpacity
                         onPress={() => setShowPassword(!showPassword)}
+                        accessibilityLabel={showPassword ? 'Hide Password': 'Show Passowrd'}
                     >
                         <Text style={styles.eyeText}>{showPassword ? 'Hide' : 'Show'}</Text>
                     </TouchableOpacity>
                 </View>
             </View>
 
-            <TouchableOpacity style={styles.registerButton}>
-                <Text style={{color:'red', textAlign:'center'}}>Create Account</Text>
+            <TouchableOpacity style={styles.registerButton} accessibilityLabel='Create Account Button'>
+                <Text style={styles.registerText}>Create Account</Text>
             </TouchableOpacity>
 
             <View style={styles.bottomSection}>
-                <Text>Already have an account?</Text>
-                <TouchableOpacity>
+                <Text style={styles.loginText}>Already have an account?</Text>
+                <TouchableOpacity accessibilityLabel='Sign in instead'>
                     <Text style={styles.hyperlink}>Log In</Text>
                 </TouchableOpacity>
             </View>
@@ -145,9 +160,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
 
     },
-    loginText: {
-        
-    },
     hyperlink: {
         color: '#542a18',
         marginTop: 4,
@@ -177,10 +189,6 @@ const styles = StyleSheet.create({
     bottomSection: {
         alignItems: 'center',
         marginBottom: 30,
-    },
-    hyperlink: {
-        color: 'blue',
-        marginTop: 4
     },
     showButton: {
         padding:5
