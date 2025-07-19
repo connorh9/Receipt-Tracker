@@ -1,30 +1,37 @@
-import React from 'react';
-import { Tabs, Stack, Redirect } from 'expo-router';
-import { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Tabs, Stack, Redirect, useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Text } from 'react-native';
 
 export default function RootLayout() {
   const [isLoading, setIsLoading] = useState(true)
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [hasChecked, setHasChecked] = useState(false)
+  const router = useRouter()
 
-  useEffect(()=> {
+  useFocusEffect(
+    useCallback(()=> {
     const checkAuth = async () => {
-      try {
+      console.log('checkauth')
+      try{
         const token = await AsyncStorage.getItem('token');
         console.log('token:', token);
-        setIsLoggedIn(!!token);
-      } catch (e) {
-        console.error('Failed to read token:', e);
-    }
-    
+        if(!token){
+          router.replace('/auth/Login')
+          return
+        }
+        setHasChecked(true)
+      } catch(e) {
+        console.log('Failed to read token', e)
+        router.replace('/auth/Login')
+      } finally {
+        setIsLoading(false)
+      }
     }
     checkAuth()
-  }, [])
+   }, [hasChecked])
+  )
 
-  if(isLoading) return <Text>Is Loading </Text>
+  if(isLoading) return <Text style={{textAlign:'center', marginTop:50}}>Is Loading </Text>
 
-  if(!isLoggedIn){
-    return <Redirect href='/auth/Login'/>;
-  }
   return <Tabs />;
 }
