@@ -126,7 +126,7 @@ export default function Register(){
 
             <View style={styles.bottomSection}>
                 <Text style={styles.loginText}>Already have an account?</Text>
-                <TouchableOpacity accessibilityLabel='Sign in instead'>
+                <TouchableOpacity onPress={() => router.replace('/auth/Login')} accessibilityLabel='Sign in instead'>
                     <Text style={styles.hyperlink}>Log In</Text>
                 </TouchableOpacity>
             </View>

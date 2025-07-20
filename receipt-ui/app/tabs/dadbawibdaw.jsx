@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 
 export default function TabLayout() {
   const [isLoading, setIsLoading] = useState(true)
+  console.log("Reached second layout page")
   
   return (
     <Tabs>

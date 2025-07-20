@@ -2,8 +2,6 @@ import { useState } from 'react';
 import { AsyncStorage, Dimensions, Button, View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 
-
-
 const screenHeight = Dimensions.get('window').height;
 
 export default function Login(){
@@ -116,7 +114,7 @@ export default function Login(){
 
             <View style={styles.bottomSection}>
                 <Text style={styles.registerText}>Need to create an account?</Text>
-                <TouchableOpacity accessibilityLabel='Register Button'>
+                <TouchableOpacity accessibilityLabel='Register Button' onPress={() => router.replace('/auth/Register')}>
                     <Text style={styles.hyperlink}>Sign Up</Text>
                 </TouchableOpacity>
             </View>
