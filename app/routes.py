@@ -100,43 +100,51 @@ def addReceipt(user_id):
     items_str = json.dumps(items)
 
     #insert into receipt db
-    cursor = db.execute(
-        '''
-        INSERT INTO receipts (total, business, items, timestamp, expense_type, user_id)
-        VALUES (?,?,?,?,?,?)
-        ''',
-        (total, business, items_str, timestamp, expense_type, user_id)
-    )
+    try:
+        with db.cursor() as cursor:
+            # Insert receipt and fetch its ID
+            cursor.execute(
+                '''
+                INSERT INTO receipts (total, business, items, timestamp, expense_type, user_id)
+                VALUES (%s, %s, %s, %s, %s, %s) RETURNING id
+                ''',
+                (total, business, items_str, timestamp, expense_type, user_id)
+            )
+            receipt_id = cursor.fetchone()[0]
 
-    receipt_id = cursor.lastrowid
+            # Insert each item
+            for item in items:
+                cursor.execute(
+                    '''
+                    INSERT INTO items (item, price, receipt_id)
+                    VALUES (%s, %s, %s)
+                    ''',
+                    (item.get('title'), item.get('price'), receipt_id)
+                )
+        db.commit()
+        return jsonify({"message": "Receipt added successfully!"}), 201
 
-    #insert items into db
-    for item in items:
-        db.execute(
-            '''
-            INSERT INTO items (item, price, receipt_id)
-            VALUES (?,?,?)
-            ''',
-            (item.get('title'), item.get('price'), receipt_id)
-        )
-
-    db.commit()
-
-    return jsonify({"message":"Receipt added successfully!"}), 201
+    except Exception as e:
+        db.rollback()
+        return jsonify({"message": "Failed to add receipt", "error": str(e)}), 500
     
 @bp.route('/receipts', methods=['GET'])
 @token_required
 def fetchReceipts(user_id):
     #gets all receipts from most to least recent
-    db = get_db()
-    cursor = db.execute(
-        'SELECT * FROM receipts WHERE user_id = ? ORDER BY timestamp DESC' ,
-        (user_id,)   
-    )
-    receipts = cursor.fetchall()
-    receipts_list = [dict(receipt) for receipt in receipts]
-
-    return jsonify(receipts_list), 200
+    try:
+        db = get_db()
+        with db.cursor() as cursor:
+            cursor.execute(
+                'SELECT * FROM receipts WHERE user_id = %s ORDER BY timestamp DESC' ,
+                (user_id,)   
+            )
+            receipts = cursor.fetchall()
+            receipts_list = [dict(receipt) for receipt in receipts]
+        return jsonify(receipts_list), 200
+    
+    except Exception as e:
+        return jsonify({'error': 'Failed to fetch receipts', 'details': str(e)}), 500
 
 @bp.route('/register', methods=['POST'])
 def registerUser():
@@ -163,7 +171,7 @@ def registerUser():
     db = get_db()
 
     cursor = db.execute(
-        'SELECT * FROM users WHERE username = ?',
+        'SELECT * FROM users WHERE username = %s',
         (username,)
     )
     results = cursor.fetchone()
@@ -171,7 +179,7 @@ def registerUser():
         return jsonify({'message': 'Username already exists'}), 400
     
     cursor = db.execute(
-        'SELECT * FROM users WHERE email = ?',
+        'SELECT * FROM users WHERE email = %s',
         (email,)
     )
     results = cursor.fetchone()
@@ -179,10 +187,10 @@ def registerUser():
         return jsonify({'message': 'Email already exists'}), 400
     
     cursor = db.execute(
-        'INSERT INTO users (username, email, password)',
+        'INSERT INTO users (username, email, password_hash) VALUES (%s, %s, %s) RETURNING id',
         (username, email, password)
     )
-    user_id = cursor.lastrowid
+    user_id = cursor.fetchone()[0]
     if user_id is None:
         return jsonify({'message': "Unable to register user at this time"}), 400
 
@@ -202,7 +210,7 @@ def login():
     db = get_db()
 
     cursor = db.execute(
-        'SELECT * FROM users WHERE username = ? ', (username,) 
+        'SELECT * FROM users WHERE username = %s ', (username,) 
     )
 
     if not cursor.fetchone():
@@ -228,7 +236,7 @@ def get_reset_token():
     db = get_db()
 
     cursor = db.execute(
-        'SELECT * FROM users WHERE email = ? ', (email,)
+        'SELECT * FROM users WHERE email = %s ', (email,)
     )
     row = cursor.fetchone()
     if row is None:
@@ -278,7 +286,7 @@ def reset_password():
     db = get_db()
     result = db.execute(
         """
-        SELECT password_hash FROM users WHERE id = ?
+        SELECT password_hash FROM users WHERE id = %s
         """, (user_id,)
     )
     row = result.fetchone()
@@ -294,7 +302,7 @@ def reset_password():
     try:
         result = db.execute(
             """
-            UPDATE users SET password_hash = ? WHERE id = ?
+            UPDATE users SET password_hash = %s WHERE id = %s
             """, (encrypted_pw, user_id)
         )
 

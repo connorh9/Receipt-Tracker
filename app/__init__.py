@@ -5,6 +5,9 @@ from flask import Flask
 from .db import init_app
 from flask import cli
 from flask_mailman import Mail
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
 
@@ -12,7 +15,7 @@ def create_app():
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_mapping(
         SECRET_KEY='dev',
-        DATABASE=os.path.join(os.path.dirname(__file__), 'database.db')
+        DATABASE=os.getenv("DATABASE_URL")
     )
     app.config.update({
         "MAIL_SERVER": "smtp.gmail.com",
