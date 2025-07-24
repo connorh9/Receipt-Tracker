@@ -11,10 +11,6 @@ export default function Login(){
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
 
-    const resetPassword = async () => {
-
-    }
-
     const submit = async () => {
         // if(email.length() < 1){
         //     Alert.alert("Please enter an email")
@@ -104,6 +100,7 @@ export default function Login(){
                 <TouchableOpacity
                     style={styles.forgotPw}
                     accessibilityLabel='Forgot Password Button'
+                    onPress={()=> router.push('/auth/forgot')}
                 >
                     <Text style={styles.forgotPwText}>Forgot Password?</Text>
                 </TouchableOpacity>
