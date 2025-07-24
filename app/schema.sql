@@ -22,5 +22,5 @@ CREATE TABLE IF NOT EXISTS items (
     item TEXT NOT NULL,
     price NUMERIC NOT NULL,
     receipt_id INTEGER NOT NULL,
-    FOREIGN KEY (receipt_id) REFERENCES receipt(id) ON DELETE CASCADE
+    FOREIGN KEY (receipt_id) REFERENCES receipts(id) ON DELETE CASCADE
 );

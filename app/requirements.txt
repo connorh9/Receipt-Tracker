@@ -5,3 +5,4 @@ dotenv
 flask_mailman
 werkzeug
 jwt
+psycopg2

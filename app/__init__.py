@@ -14,7 +14,7 @@ app = Flask(__name__)
 def create_app():
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_mapping(
-        SECRET_KEY='dev',
+        SECRET_KEY=os.getenv("SECRET_KEY"),
         DATABASE=os.getenv("DATABASE_URL")
     )
     app.config.update({

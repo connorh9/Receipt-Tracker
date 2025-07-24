@@ -168,34 +168,39 @@ def registerUser():
 
     password_hash = generate_password_hash(password)
 
-    db = get_db()
-
-    cursor = db.execute(
-        'SELECT * FROM users WHERE username = %s',
-        (username,)
-    )
-    results = cursor.fetchone()
-    if results:
-        return jsonify({'message': 'Username already exists'}), 400
+    try:
+        db = get_db()
+        with db.cursor() as cursor:
+            cursor.execute(
+                'SELECT 1 FROM users WHERE username = %s',
+                (username,)
+            )
+            results = cursor.fetchone()
+            if results:
+                return jsonify({'message': 'Username already exists'}), 400
+            
+            cursor.execute(
+                'SELECT 1 FROM users WHERE email = %s',
+                (email,)
+            )
+            results = cursor.fetchone()
+            if results:
+                return jsonify({'message': 'Email already exists'}), 400
+            
+            cursor.execute(
+                'INSERT INTO users (username, email, password_hash) VALUES (%s, %s, %s) RETURNING id',
+                (username, email, password_hash)
+            )
+            user_id = cursor.fetchone()[0]
+            if user_id is None:
+                return jsonify({'message': "Unable to register user at this time"}), 400
+            
+        db.commit()
+        jwt_token = generate_jwt(user_id)
+        return jsonify({'token': jwt_token, 'user_id': user_id}), 200
     
-    cursor = db.execute(
-        'SELECT * FROM users WHERE email = %s',
-        (email,)
-    )
-    results = cursor.fetchone()
-    if results:
-        return jsonify({'message': 'Email already exists'}), 400
-    
-    cursor = db.execute(
-        'INSERT INTO users (username, email, password_hash) VALUES (%s, %s, %s) RETURNING id',
-        (username, email, password)
-    )
-    user_id = cursor.fetchone()[0]
-    if user_id is None:
-        return jsonify({'message': "Unable to register user at this time"}), 400
-
-    jwt_token = generate_jwt(user_id)
-    return jsonify({'token': jwt_token, 'user_id': user_id}), 200
+    except Exception as e:
+        return jsonify({'error': 'Failed to register user', 'details': str(e)}), 500
 
 @bp.route('/login', methods=['POST'])
 def login():
@@ -210,13 +215,12 @@ def login():
     db = get_db()
 
     cursor = db.execute(
-        'SELECT * FROM users WHERE username = %s ', (username,) 
+        'SELECT 1 FROM users WHERE username = %s ', (username,) 
     )
 
-    if not cursor.fetchone():
-        return jsonify({'message': 'Username does not exist'})
-
     rows = cursor.fetchall()
+    if not rows:
+        return jsonify({'message': 'Username does not exist'})
 
     for row in rows:
         hashed_pw = row[3]
@@ -236,7 +240,7 @@ def get_reset_token():
     db = get_db()
 
     cursor = db.execute(
-        'SELECT * FROM users WHERE email = %s ', (email,)
+        'SELECT 1 FROM users WHERE email = %s ', (email,)
     )
     row = cursor.fetchone()
     if row is None:
@@ -255,6 +259,7 @@ def get_reset_token():
         to=[email],
         reply_to=['noreply@receiptreader.com']
     )
+    msg.send()
     #Will integrate sending email with links later
     return jsonify({"message": "Reset link sent"}), 200
 
@@ -310,7 +315,7 @@ def reset_password():
             return jsonify({'message':'User not found in database'}), 400
         db.commit()
 
-    except sqlite3.Error as e:
+    except Exception as e:
         db.rollback()
         return jsonify({'message':'Database error'}), 500
 
