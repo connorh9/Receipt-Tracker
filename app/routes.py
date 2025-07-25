@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 import app.backend as backend
 from .db import get_db
 import json
@@ -12,6 +12,7 @@ import os
 import sqlite3
 from flask_mailman import Mail, EmailMessage
 import random, string
+import redis
 
 load_dotenv()
 
@@ -236,87 +237,97 @@ def login():
 
 
 @bp.route('/reset', methods=['POST'])
-def get_reset_token():
-    if 'email' not in request.form:
-        return jsonify({'message': 'Email not provided'}), 400
-    
+def get_reset_code():
     email = request.form.get('email')
-    db = get_db()
-
-    cursor = db.execute(
-        'SELECT 1 FROM users WHERE email = %s ', (email,)
-    )
-    row = cursor.fetchone()
-    if row is None:
-        return jsonify({'message':'Email not in system'}), 400
+    if not email:
+        return jsonify({'message': 'Email not provided'}), 400
+    r = current_app.redis
     
-    user_id = row['id']
-    token = generate_reset_token(user_id)
+    try:
+        db = get_db()
+        with db.cursor() as cursor:
+            cursor.execute(
+                'SELECT 1 FROM users WHERE email = %s ', (email,)
+            )
+            row = cursor.fetchone()
+        if row is None:
+            return jsonify({'message':'Email not in system'}), 400
+        
+        user_id = row['id']
+        code = generate_reset_code()
 
-    link = f"receipttracker://reset-password-link/${token}"
-    msg = EmailMessage(
-        'Reset Password Link',
-        f"""
-        Here is your password reset link for receipt tracker 
-        {link}
-        """,
-        to=[email],
-        reply_to=['noreply@receiptreader.com']
-    )
-    msg.send()
-    #Will integrate sending email with links later
-    return jsonify({"message": "Reset link sent"}), 200
+        redis_key = f"reset:{user_id}"
+        r.set(redis_key, code, ex=600)
+
+        msg = EmailMessage(
+            'Reset Password Code',
+            f"""
+            Here is your password reset code for receipt tracker: 
+            {code}
+            """,
+            to=[email],
+            reply_to=['noreply@receiptreader.com']
+        )
+        msg.send()
+        #Will integrate sending email with links later
+        return jsonify({"message": "Reset link sent"}), 200
+    except Exception as e:
+        return jsonify({'error': 'Failed to get reset code', 'details': str(e)}), 500
 
 @bp.route('/reset_password', methods=['POST'])
 def reset_password():
-    data = None
     data = request.get_json()
-
-    if data is None:
-        return jsonify({'message':'No json data found'}), 400
+    if not data:
+        return jsonify({'message':'Data not found in json'}), 400
     
-    if 'token' not in data:
-        return jsonify({'message':'Token not found in json'}), 400
-
-    if 'new_password' not in data:
-        return jsonify({'message':'Password not found in json'}), 400
-    
-    token = data.get('token')
+    r = current_app.redis
+    email = data.get('email')
+    submitted_code = data.get('code')
     new_password = data.get('new_password')
 
-    try:
-        data = decode(token, SECRET_KEY, algorithms=["HS256"])
-        user_id = data['user_id']
-    except ExpiredSignatureError:
-        return jsonify({'message': 'Token expired'}), 401
-    except InvalidTokenError:
-        return jsonify({'message': 'Token invalid'}), 401
+    if not all([email, submitted_code, new_password]):
+        return jsonify({'message': 'Email, code, and password are required'}), 400
     
     db = get_db()
-    result = db.execute(
-        """
-        SELECT password_hash FROM users WHERE id = %s
-        """, (user_id,)
-    )
-    row = result.fetchone()
-    if not check_password_hash(row['password_hash'], new_password):
-        return jsonify({
-            'message':'Cannot reuse a password'
-        }), 400
-
-    if len(new_password) < 8:
-        return jsonify({'message':'New password does not meet length requirement'}), 400
-    
-    encrypted_pw = generate_password_hash(new_password)
     try:
-        result = db.execute(
-            """
-            UPDATE users SET password_hash = %s WHERE id = %s
-            """, (encrypted_pw, user_id)
-        )
+        with db.cursor() as cursor:
+            result = db.execute(
+                """
+                SELECT id, password_hash FROM users WHERE email = %s
+                """, (email,)
+            )
+            row = result.fetchone()
+            if not row:
+                return jsonify({'message':'Email not found'}),400
 
-        if result.rowcount == 0:
-            return jsonify({'message':'User not found in database'}), 400
+        user_id = row['id']
+        redis_key = f"reset:{user_id}"
+        valid_code = r.get(redis_key)
+
+        if not valid_code:
+            return jsonify({'message':'Code expired or not found'}), 400
+        if valid_code != submitted_code:
+            return jsonify({'message':'Code not valid'}), 400
+
+        if check_password_hash(row['password_hash'], new_password):
+            return jsonify({
+                'message':'Cannot reuse a password'
+            }), 400
+
+        if len(new_password) < 8:
+            return jsonify({'message':'New password does not meet length requirement'}), 400
+    
+        encrypted_pw = generate_password_hash(new_password)
+   
+        with db.cursor() as cursor:
+            cursor.execute(
+                """
+                UPDATE users SET password_hash = %s WHERE id = %s
+                """, (encrypted_pw, user_id)
+            )
+
+            if result.rowcount == 0:
+                return jsonify({'message':'User not found in database'}), 400
         db.commit()
 
     except Exception as e:
