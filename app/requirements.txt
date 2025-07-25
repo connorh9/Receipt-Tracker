@@ -2,7 +2,8 @@ openai
 opencv-python
 pytesseract
 dotenv
-flask_mailman
+flask-mailman
 werkzeug
 jwt
 psycopg2
+redis

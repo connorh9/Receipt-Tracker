@@ -11,6 +11,7 @@ from datetime import datetime, timedelta, timezone
 import os
 import sqlite3
 from flask_mailman import Mail, EmailMessage
+import random, string
 
 load_dotenv()
 
@@ -38,6 +39,9 @@ def generate_reset_token(user_id):
     }
     token = jwt.encode(payload, SECRET_KEY, algorithm='HS256')
     return token
+
+def generate_reset_code(length=6):
+    return ''.join(random.choices(string.digits, k=length))
 
 def token_required(f):
     @wraps(f)
