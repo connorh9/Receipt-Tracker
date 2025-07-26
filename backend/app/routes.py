@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, current_app
-import app.backend as backend
+import backend.app.backend as backend
 from .db import get_db
 import json
 import numpy as np
