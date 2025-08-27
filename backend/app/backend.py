@@ -19,10 +19,6 @@ def extract_text(file):
     produces a string representation of the image.
     Returns: string: the receipt's text in string format
     """
-    #print(pytesseract)
-    #img = cv2.imread("../walmart_receipt.png")
-    
-    #Here we decode the image we received as a file buffer
     file_bytes = file.read()
     nparr = np.frombuffer(file_bytes, np.uint8)
     img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
@@ -41,14 +37,16 @@ def extract_text(file):
     # dilation = cv2.dilate(thresh_img, rect_kernel, iterations = 1)
 
     #writing the image for testing
-    cv2.imwrite("test_receipt.jpg", thresh_img)
 
     #use tesseract for text extraction
     text = pytesseract.image_to_string(thresh_img)
-    print(text)
     return text
 
 def get_formatted_json(text):
+    """
+    Utilizes OpenAI to parse the extracted text and provide a formatted JSON representation of the receipt's text
+    Returns: string: the formatted json of the text
+    """
     prompt = """You are a receipt parser AI. I will give you raw text extracted from an image of a store receipt. I want you to return a JSON object of that text and
     include a field named expense_type where you infer what type of expense it is and categorize it based on the receipt. The JSON stucture should be: 
     {"total", "business", "items": [{"title", "quantity", "price"}], "timestamp", "expense_type}. The prices should be integers representing the number of pennies,

@@ -9,7 +9,6 @@ from jwt import ExpiredSignatureError, decode, jwt, InvalidTokenError
 from dotenv import load_dotenv
 from datetime import datetime, timedelta, timezone
 import os
-import sqlite3
 from flask_mailman import Mail, EmailMessage
 import random, string
 import redis
