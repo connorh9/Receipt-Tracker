@@ -5,13 +5,13 @@ import json
 import numpy as np
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
-from jwt import ExpiredSignatureError, decode, jwt, InvalidTokenError
+import jwt
+from jwt import ExpiredSignatureError, InvalidTokenError
 from dotenv import load_dotenv
 from datetime import datetime, timedelta, timezone
 import os
 from flask_mailman import Mail, EmailMessage
 import random, string
-import redis
 
 load_dotenv()
 
@@ -54,7 +54,7 @@ def token_required(f):
             return jsonify({'message': 'Token missing'}), 401
 
         try:
-            data = decode(token, SECRET_KEY, algorithms=["HS256"])
+            data = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
             user_id = data['user_id']
         except ExpiredSignatureError:
             return jsonify({'message': 'Token expired'}), 401
@@ -95,7 +95,6 @@ def addReceipt(user_id):
     items = formatted_data.get('items')
     timestamp = formatted_data.get('timestamp')
     expense_type = formatted_data.get('expense_type')
-    #user_id = data.get('user_id')
 
     if None in [total, business, items, timestamp, expense_type, user_id]:
         return jsonify({"error": "missing required json data"}), 400
@@ -151,17 +150,21 @@ def fetchReceipts(user_id):
         return jsonify({'error': 'Failed to fetch receipts', 'details': str(e)}), 500
 
 @bp.route('/register', methods=['POST'])
-def registerUser():
-    if 'username' not in request.form:
+def register_user():
+    data = request.get_json()
+    if not data:
+        return jsonify({'message': 'Missing JSON body'}), 400
+
+    username = data.get('username')
+    password = data.get('password')
+    email = data.get('email')
+
+    if not username:
         return jsonify({'message': 'Username missing'}), 400
-    if 'password' not in request.form:
+    if not password:
         return jsonify({'message': 'Password missing'}), 400
-    if 'email' not in request.form:
+    if not email:
         return jsonify({'message': 'Email missing'}), 400
-    
-    username = request.form.get('username')
-    password = request.form.get('password')
-    email = request.form.get('email')
 
     if len(username) < 6:
         return jsonify({'message': 'Username requires 6 characters'}), 400
@@ -204,32 +207,36 @@ def registerUser():
         return jsonify({'token': jwt_token, 'user_id': user_id}), 200
     
     except Exception as e:
+        db.rollback()
         return jsonify({'error': 'Failed to register user', 'details': str(e)}), 500
 
 @bp.route('/login', methods=['POST'])
 def login():
-    if 'username' not in request.form:
+    data = request.get_json()
+    if not data:
+        return jsonify({'message': 'Missing JSON body'}), 400
+
+    username = data.get('username')
+    password = data.get('password')
+
+    if not username:
         return jsonify({'message': 'Username missing'}), 400
-    if 'password' not in request.form:
+    if not password:
         return jsonify({'message': 'Password missing'}), 400
-    
-    username = request.form.get('username')
-    password = request.form.get('password')
 
     db = get_db()
 
-    cursor = db.execute(
-        'SELECT 1 FROM users WHERE username = %s ', (username,) 
-    )
+    with db.cursor() as cursor:
+        cursor.execute('SELECT * FROM users WHERE username = %s', (username,))
+        row = cursor.fetchone()
 
-    rows = cursor.fetchall()
-    if not rows:
-        return jsonify({'message': 'Username does not exist'})
+        if not row:
+            return jsonify({'message': 'Username does not exist'})
 
-    for row in rows:
-        hashed_pw = row[3]
+        
+        hashed_pw = row['password_hash']
         if(check_password_hash(hashed_pw, password)):
-            token = generate_jwt(row[0])
+            token = generate_jwt(row['id'])
             return jsonify({'message':'Successfully logged in', 'token': token}), 200
     
     return jsonify({'message':'Password is incorrect'}), 400
@@ -237,7 +244,11 @@ def login():
 
 @bp.route('/reset', methods=['POST'])
 def get_reset_code():
-    email = request.form.get('email')
+    data = request.get_json()
+    if not data:
+        return jsonify({'message': 'Missing JSON body'}), 400
+
+    email = data.get('email')
     if not email:
         return jsonify({'message': 'Email not provided'}), 400
     r = current_app.redis
@@ -246,17 +257,24 @@ def get_reset_code():
         db = get_db()
         with db.cursor() as cursor:
             cursor.execute(
-                'SELECT 1 FROM users WHERE email = %s ', (email,)
+                'SELECT id FROM users WHERE email = %s ', (email,)
             )
             row = cursor.fetchone()
-        if row is None:
-            return jsonify({'message':'Email not in system'}), 400
-        
-        user_id = row['id']
-        code = generate_reset_code()
+            if not row:
+                return jsonify({'message':'Email not in system'}), 400
+            
+            user_id = row['id']
+            code = generate_reset_code()
+            expires_at = datetime.now(timezone.UTC) + timedelta(minutes=10)
 
-        redis_key = f"reset:{user_id}"
-        r.set(redis_key, code, ex=600)
+            cursor.execute(
+                """
+                INSERT INTO password_resets (user_id, code, expires_at)
+                VALUES(%s, %s, %s)
+                ON CONFLICT (user_id)
+                DO UPDATE SET code = EXCLUDED.code, expries_at = EXCLUDED.expires_at
+                """, (user_id, code, expires_at)
+            )
 
         msg = EmailMessage(
             'Reset Password Code',
@@ -279,7 +297,6 @@ def reset_password():
     if not data:
         return jsonify({'message':'Data not found in json'}), 400
     
-    r = current_app.redis
     email = data.get('email')
     submitted_code = data.get('code')
     new_password = data.get('new_password')
@@ -290,22 +307,26 @@ def reset_password():
     db = get_db()
     try:
         with db.cursor() as cursor:
-            result = db.execute(
-                """
-                SELECT id, password_hash FROM users WHERE email = %s
-                """, (email,)
-            )
-            row = result.fetchone()
+            cursor.execute("SELECT id, password_hash FROM users WHERE email = %s", (email,))
+            row = cursor.fetchone()
             if not row:
                 return jsonify({'message':'Email not found'}),400
 
-        user_id = row['id']
-        redis_key = f"reset:{user_id}"
-        valid_code = r.get(redis_key)
+            user_id = row['id']
 
-        if not valid_code:
+            cursor.execute(
+                """
+                SELECT code, expires_at
+                FROM password_resets
+                WHERE user_id = %s           
+                """, (user_id,)
+            )
+            reset_row = cursor.fetchone()
+        
+
+        if not reset_row:
             return jsonify({'message':'Code expired or not found'}), 400
-        if valid_code != submitted_code:
+        if reset_row['code'] != submitted_code:
             return jsonify({'message':'Code not valid'}), 400
 
         if check_password_hash(row['password_hash'], new_password):
@@ -325,9 +346,12 @@ def reset_password():
                 """, (encrypted_pw, user_id)
             )
 
-            if result.rowcount == 0:
+            if cursor.rowcount == 0:
                 return jsonify({'message':'User not found in database'}), 400
-        db.commit()
+            
+            cursor.execute("DELETE FROM password_resets WHERE user_id = %s", (user_id,))
+
+            db.commit()
 
     except Exception as e:
         db.rollback()
